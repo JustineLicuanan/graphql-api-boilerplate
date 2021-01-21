@@ -3,10 +3,10 @@ import { Query, Resolver, UseMiddleware } from 'type-graphql';
 import { isAuth } from '../middlewares/isAuth';
 
 @Resolver()
-export class BookResolver {
+export class HelloResolver {
 	@Query(() => String)
 	@UseMiddleware(isAuth)
-	book() {
-		return 'The Republic';
+	hi(): string {
+		return 'Hello world';
 	}
 }

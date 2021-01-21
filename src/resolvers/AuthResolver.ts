@@ -1,81 +1,54 @@
+import { Arg, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import bcrypt from 'bcryptjs';
-import { Arg, Ctx, Mutation, Resolver, Query } from 'type-graphql';
 
-import { User } from '../entities/User';
-import * as Types from '../graphql-types/AuthResolverTypes';
+import { User } from '../entity/User';
+import * as ResolverTypes from '../graphql-types/AuthResolverTypes';
 import { MyContext } from '../graphql-types/MyContext';
-
-const invalidLoginResponse = {
-	errors: [
-		{
-			path: 'email',
-			message: 'Invalid login',
-		},
-	],
-};
 
 @Resolver()
 export class AuthResolver {
-	@Mutation(() => Types.UserResponse)
+	@Mutation(() => User)
 	async register(
-		@Arg('input')
-		{ email, password }: Types.AuthInput
-	): Promise<Types.UserResponse> {
-		const existingUser = await User.findOne({ email });
-
-		if (existingUser)
-			return {
-				errors: [
-					{
-						path: 'email',
-						message: 'Already in use',
-					},
-				],
-			};
-
-		const hashedPassword = await bcrypt.hash(password, 10);
-
-		const user = await User.create({
-			email,
-			password: hashedPassword,
-		}).save();
-
-		return { user };
+		@Arg('input') input: ResolverTypes.RegisterInput
+	): Promise<User> {
+		return await User.create(input).save();
 	}
 
-	@Mutation(() => Types.UserResponse)
+	@Mutation(() => User)
 	async login(
-		@Arg('input') { email, password }: Types.AuthInput,
-		@Ctx() ctx: MyContext
-	): Promise<Types.UserResponse> {
-		const user = await User.findOne({ where: { email } });
+		@Arg('input') input: ResolverTypes.RegisterInput,
+		@Ctx() { req }: MyContext
+	): Promise<User> {
+		const user = await User.findOne(
+			{ email: input.email },
+			{ select: ['id', 'password'] }
+		);
+		if (!user) throw new Error('Email is incorrect');
 
-		if (!user) return invalidLoginResponse;
+		const isMatch = await bcrypt.compare(input.password, user.password);
+		if (!isMatch) throw new Error('Password is incorrect');
 
-		const valid = await bcrypt.compare(password, user.password);
-
-		if (!valid) return invalidLoginResponse;
-
-		(ctx.req.session as any).userId = user.id;
-
-		return { user };
+		const { password, ...filteredUser } = user;
+		(req.session as any).user = {
+			...filteredUser,
+			email: input.email,
+		};
+		return {
+			...user,
+			email: input.email,
+		} as User;
 	}
 
 	@Query(() => User, { nullable: true })
-	async me(@Ctx() ctx: MyContext): Promise<User | undefined> {
-		if (!(ctx.req.session as any).userId) return undefined;
-
-		return User.findOne((ctx.req.session as any).userId);
+	async me(@Ctx() { req }: MyContext): Promise<User | undefined> {
+		return (req.session as any).user;
 	}
 
 	@Mutation(() => Boolean)
-	async logout(@Ctx() ctx: MyContext): Promise<Boolean> {
+	logout(@Ctx() ctx: MyContext): Promise<boolean> {
 		return new Promise((res, rej) =>
 			ctx.req.session!.destroy((err) => {
-				if (err) {
-					console.log(err);
-					return rej(false);
-				}
+				if (err) return rej(false);
 
 				ctx.res.clearCookie('qid');
 				return res(true);

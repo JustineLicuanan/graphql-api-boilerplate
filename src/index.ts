@@ -1,12 +1,12 @@
 import 'reflect-metadata';
-import { createConnection, getConnectionOptions } from 'typeorm';
+import { buildSchema } from 'type-graphql';
+import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import session from 'express-session';
-import { ApolloServer } from 'apollo-server-express';
-import { buildSchema } from 'type-graphql';
+import { createConnection, getConnectionOptions } from 'typeorm';
 
 import { AuthResolver } from './resolvers/AuthResolver';
-import { BookResolver } from './resolvers/BookResolver';
+import { HelloResolver } from './resolvers/HelloResolver';
 
 (async () => {
 	const {
@@ -30,13 +30,12 @@ import { BookResolver } from './resolvers/BookResolver';
 		})
 	);
 
-	// Get options from ormconfig.js
-	const dbOptions = await getConnectionOptions(NODE_ENV);
-	await createConnection({ ...dbOptions, name: 'default' });
+	const options = await getConnectionOptions(NODE_ENV);
+	await createConnection({ ...options, name: 'default' });
 
 	const apolloServer = new ApolloServer({
 		schema: await buildSchema({
-			resolvers: [AuthResolver, BookResolver],
+			resolvers: [AuthResolver, HelloResolver],
 			validate: true,
 		}),
 		context: ({ req, res }) => ({ req, res }),
