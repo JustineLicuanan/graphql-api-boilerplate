@@ -16,7 +16,7 @@ export class AuthResolver {
 
 	@Mutation(() => User)
 	async login(
-		@Arg('input') input: ResolverTypes.RegisterInput,
+		@Arg('input') input: ResolverTypes.LoginInput,
 		@Ctx() { req }: MyContext
 	): Promise<User> {
 		const user = await User.findOne(
