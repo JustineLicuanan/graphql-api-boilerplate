@@ -6,7 +6,7 @@ import session from 'express-session';
 import { createConnection, getConnectionOptions } from 'typeorm';
 
 import { AuthResolver } from './resolvers/AuthResolver';
-import { HelloResolver } from './resolvers/HelloResolver';
+import { HiResolver } from './resolvers/HiResolver';
 
 (async () => {
 	const {
@@ -35,7 +35,7 @@ import { HelloResolver } from './resolvers/HelloResolver';
 
 	const apolloServer = new ApolloServer({
 		schema: await buildSchema({
-			resolvers: [AuthResolver, HelloResolver],
+			resolvers: [AuthResolver, HiResolver],
 			validate: true,
 		}),
 		context: ({ req, res }) => ({ req, res }),

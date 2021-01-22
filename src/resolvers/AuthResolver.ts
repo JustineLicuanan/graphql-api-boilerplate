@@ -28,9 +28,8 @@ export class AuthResolver {
 		const isMatch = await bcrypt.compare(input.password, user.password);
 		if (!isMatch) throw new Error('Password is incorrect');
 
-		const { password, ...filteredUser } = user;
 		(req.session as any).user = {
-			...filteredUser,
+			...user,
 			email: input.email,
 		};
 		return {
